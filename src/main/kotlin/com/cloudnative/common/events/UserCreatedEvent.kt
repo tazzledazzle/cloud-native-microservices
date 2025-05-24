@@ -1,6 +1,6 @@
 package com.cloudnative.common.events
 
-import java.time.LocalDateTime
+import kotlinx.datetime.LocalDateTime
 
 data class UserCreatedEvent(
     val eventType: String,

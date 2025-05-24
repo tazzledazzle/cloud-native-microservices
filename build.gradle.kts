@@ -14,6 +14,10 @@ repositories {
 }
 
 dependencies {
+
+    // Kotlin deps
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.2")
+
     // Spring Boot
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
@@ -35,8 +39,11 @@ dependencies {
     
     // Resilience4j
     implementation("io.github.resilience4j:resilience4j-spring-boot2")
-    implementation("javax.validation:validation-api:2.0.1.Final")
-    implementation("org.hibernate.validator:hibernate-validator:6.2.5.Final")
+    
+    // Jakarta EE
+    implementation("jakarta.validation:jakarta.validation-api:3.0.2")
+    implementation("jakarta.persistence:jakarta.persistence-api:3.1.0")
+    implementation("org.hibernate.validator:hibernate-validator:8.0.1.Final")
     
     // Test
     testImplementation("org.springframework.boot:spring-boot-starter-test")

@@ -11,18 +11,23 @@ import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.stereotype.Service
 import jakarta.validation.Valid
 import jakarta.validation.ConstraintViolationException
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.Clock
+import java.time.LocalDateTime as JLocalDateTime
+import kotlinx.datetime.toKotlinLocalDateTime
 import org.springframework.validation.annotation.Validated
-import java.time.LocalDateTime
+import org.springframework.transaction.annotation.Transactional
 
 class UserNotFoundException(id: Long) : RuntimeException("User not found with id: $id")
 
-@Service
 @Validated
+@Service
+@Transactional
 class UserService(
     private val userRepository: UserRepository,
+    private val meterRegistry: MeterRegistry,
     private val kafkaTemplate: KafkaTemplate<String, UserCreatedEvent>,
-    @Value("\${kafka.user-events-topic}") private val userEventsTopic: String,
-    private val meterRegistry: MeterRegistry
+    @Value("\${user.events.topic}") private val userEventsTopic: String
 ) {
     private val logger = LoggerFactory.getLogger(UserService::class.java)
 
@@ -31,7 +36,7 @@ class UserService(
      * @throws ConstraintViolationException if input is invalid
      */
     fun createUser(@Valid user: User): User {
-        val now = LocalDateTime.now()
+        val now = JLocalDateTime.now().toKotlinLocalDateTime()
         val userWithTimestamp = user.copy(createdAt = now)
         val savedUser = userRepository.save(userWithTimestamp)
 
@@ -42,7 +47,7 @@ class UserService(
             firstName = savedUser.name,
             lastName = "", // No last name in our User model
             email = savedUser.email,
-            createdAt = savedUser.createdAt ?: now
+            createdAt = savedUser.createdAt ?: JLocalDateTime.now().toKotlinLocalDateTime()
         )
         kafkaTemplate.send(userEventsTopic, savedUser.id.toString(), event)
         logger.info("Published UserCreatedEvent for user id=${savedUser.id}")
@@ -65,4 +70,4 @@ class UserService(
 }
 
 // Using com.cloudnative.common.events.UserCreatedEvent
-// Remove local UserCreatedEvent class since we're using the common events version
+// Remove local UserCreatedEvent class since we're using the common events version  
