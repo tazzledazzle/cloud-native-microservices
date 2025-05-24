@@ -32,6 +32,15 @@ class NotificationServiceTest : BaseServiceTest() {
             "Welcome to Our Platform!",
             "Welcome! Your account has been created successfully."
         )
+        Mockito.verify(kafkaTemplate).send(
+            "notification-events",
+            UserCreatedEvent(
+                eventType = "notification.sent",
+                userId = "1",
+                email = "test@example.com",
+                createdAt = LocalDateTime.now()
+            )
+        )
     }
 
     @Test

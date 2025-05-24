@@ -14,7 +14,7 @@ import java.time.LocalDateTime
 class OrderService(
     private val orderRepository: OrderRepository,
     private val kafkaTemplate: KafkaTemplate<String, OrderProcessedEvent>
-) {
+) : BaseService() {
     
     @KafkaListener(topics = ["user-events"], groupId = "order-service")
     fun handleUserCreated(event: UserCreatedEvent) {
@@ -28,17 +28,16 @@ class OrderService(
         val savedOrder = orderRepository.save(order)
         
         // Publish order.processed event
-        val processedEvent = OrderProcessedEvent(
+        publishEvent("order-events", OrderProcessedEvent(
             eventType = "order.processed",
             orderId = savedOrder.id.toString(),
             userId = event.userId,
             totalAmount = savedOrder.totalAmount,
             status = savedOrder.status.name,
             createdAt = savedOrder.createdAt
-        )
-        kafkaTemplate.send("order-events", processedEvent)
+        ), kafkaTemplate)
     }
-
+    
     fun getOrdersByUser(userId: Long): List<Order> {
         return orderRepository.findByUserId(userId)
     }

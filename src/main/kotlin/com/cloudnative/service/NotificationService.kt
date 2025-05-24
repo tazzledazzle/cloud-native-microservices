@@ -3,11 +3,14 @@ package com.cloudnative.service
 import com.cloudnative.common.events.UserCreatedEvent
 import com.cloudnative.common.events.OrderProcessedEvent
 import org.springframework.kafka.annotation.KafkaListener
+import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.stereotype.Service
 import java.time.LocalDateTime
 
 @Service
-open class NotificationService {
+open class NotificationService(
+    private val kafkaTemplate: KafkaTemplate<String, UserCreatedEvent>
+) : BaseService() {
     
     @KafkaListener(topics = ["user-events"], groupId = "notification-service")
     fun handleUserCreated(event: UserCreatedEvent) {
@@ -32,5 +35,13 @@ open class NotificationService {
     open fun sendNotification(email: String, subject: String, message: String) {
         // In real implementation, this would integrate with an email service
         println("[Notification] Sending email to $email: $subject - $message")
+        
+        // Publish notification.sent event
+        publishEvent("notification-events", UserCreatedEvent(
+            eventType = "notification.sent",
+            userId = "1",
+            email = email,
+            createdAt = LocalDateTime.now()
+        ), kafkaTemplate)
     }
 }
