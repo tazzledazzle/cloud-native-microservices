@@ -64,7 +64,7 @@ class OrderServiceTest : BaseServiceTest() {
     }
 
     @Test
-    fun `should get orders by user id`() {
+    fun `should get orders by user`() {
         val order = Order(
             id = 1L,
             userId = 1L,
@@ -77,7 +77,6 @@ class OrderServiceTest : BaseServiceTest() {
         val result = orderService.getOrdersByUser(1L)
 
         Mockito.verify(orderRepository).findByUserId(1L)
-        assert(result.size == 1)
-        assert(result[0].id == 1L)
+        assert(result == listOf(order))
     }
 }

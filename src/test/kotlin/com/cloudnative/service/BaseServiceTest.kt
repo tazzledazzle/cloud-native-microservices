@@ -7,7 +7,7 @@ import org.mockito.junit.jupiter.MockitoExtension
 import org.springframework.kafka.core.KafkaTemplate
 
 @ExtendWith(MockitoExtension::class)
-abstract class BaseServiceTest {
+open class BaseServiceTest {
     
     @Mock
     protected lateinit var kafkaTemplate: KafkaTemplate<String, Any>
