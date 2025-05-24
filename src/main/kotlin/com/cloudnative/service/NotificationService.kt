@@ -9,8 +9,8 @@ import java.time.LocalDateTime
 
 @Service
 open class NotificationService(
-    override val kafkaTemplate: KafkaTemplate<String, Any>
-) : BaseService(kafkaTemplate) {
+    override val kafkaTemplate: KafkaTemplate<String, UserCreatedEvent>
+) : BaseService<UserCreatedEvent>(kafkaTemplate) {
     
     @KafkaListener(topics = ["user-events"], groupId = "notification-service")
     fun handleUserCreated(event: UserCreatedEvent) {
@@ -45,7 +45,5 @@ open class NotificationService(
             email = email,
             createdAt = LocalDateTime.now()
         ))
-    }
-        println("[Notification] Sending email to $email: $subject - $message")
     }
 }

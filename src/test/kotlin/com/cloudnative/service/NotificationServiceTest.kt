@@ -11,7 +11,7 @@ import org.mockito.junit.jupiter.MockitoExtension
 import java.time.LocalDateTime
 
 @ExtendWith(MockitoExtension::class)
-class NotificationServiceTest : BaseServiceTest() {
+class NotificationServiceTest : BaseServiceTest<UserCreatedEvent>() {
 
     @InjectMocks
     lateinit var notificationService: NotificationService
