@@ -13,13 +13,10 @@ import org.springframework.kafka.core.KafkaTemplate
 import java.time.LocalDateTime
 
 @ExtendWith(MockitoExtension::class)
-class UserServiceTest {
+class UserServiceTest : BaseServiceTest() {
 
     @Mock
     lateinit var userRepository: UserRepository
-
-    @Mock
-    lateinit var kafkaTemplate: KafkaTemplate<String, UserCreatedEvent>
 
     @InjectMocks
     lateinit var userService: UserService
@@ -29,14 +26,18 @@ class UserServiceTest {
         val user = User(
             email = "test@example.com",
             firstName = "Test",
-            lastName = "User"
+            lastName = "User",
+            createdAt = LocalDateTime.now(),
+            updatedAt = LocalDateTime.now()
         )
 
         val savedUser = User(
             id = 1L,
             email = "test@example.com",
             firstName = "Test",
-            lastName = "User"
+            lastName = "User",
+            createdAt = LocalDateTime.now(),
+            updatedAt = LocalDateTime.now()
         )
 
         Mockito.`when`(userRepository.save(user)).thenReturn(savedUser)
@@ -63,7 +64,9 @@ class UserServiceTest {
             id = 1L,
             email = "test@example.com",
             firstName = "Test",
-            lastName = "User"
+            lastName = "User",
+            createdAt = LocalDateTime.now(),
+            updatedAt = LocalDateTime.now()
         )
 
         Mockito.`when`(userRepository.findById(1L)).thenReturn(java.util.Optional.of(user))

@@ -15,13 +15,10 @@ import org.springframework.kafka.core.KafkaTemplate
 import java.time.LocalDateTime
 
 @ExtendWith(MockitoExtension::class)
-class OrderServiceTest {
+class OrderServiceTest : BaseServiceTest() {
 
     @Mock
     lateinit var orderRepository: OrderRepository
-
-    @Mock
-    lateinit var kafkaTemplate: KafkaTemplate<String, OrderProcessedEvent>
 
     @InjectMocks
     lateinit var orderService: OrderService

@@ -7,7 +7,7 @@ import org.springframework.stereotype.Service
 import java.time.LocalDateTime
 
 @Service
-class NotificationService {
+open class NotificationService {
     
     @KafkaListener(topics = ["user-events"], groupId = "notification-service")
     fun handleUserCreated(event: UserCreatedEvent) {
@@ -29,7 +29,7 @@ class NotificationService {
         )
     }
     
-    protected open fun sendNotification(email: String, subject: String, message: String) {
+    open fun sendNotification(email: String, subject: String, message: String) {
         // In real implementation, this would integrate with an email service
         println("[Notification] Sending email to $email: $subject - $message")
     }
