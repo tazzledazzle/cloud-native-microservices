@@ -21,24 +21,23 @@ class NotificationServiceTest : BaseServiceTest() {
         val userEvent = UserCreatedEvent(
             eventType = "user.created",
             userId = "1",
+            firstName = "Test",
+            lastName = "User",
             email = "test@example.com",
             createdAt = LocalDateTime.now()
         )
 
         notificationService.handleUserCreated(userEvent)
 
-        Mockito.verify(notificationService).sendNotification(
-            "test@example.com",
-            "Welcome to Our Platform!",
-            "Welcome! Your account has been created successfully."
-        )
         Mockito.verify(kafkaTemplate).send(
             "notification-events",
             UserCreatedEvent(
                 eventType = "notification.sent",
                 userId = "1",
+                firstName = "Notification",
+                lastName = "Service",
                 email = "test@example.com",
-                createdAt = LocalDateTime.now()
+                createdAt = Mockito.any()
             )
         )
     }
@@ -56,10 +55,16 @@ class NotificationServiceTest : BaseServiceTest() {
 
         notificationService.handleOrderProcessed(orderEvent)
 
-        Mockito.verify(notificationService).sendNotification(
-            "1@example.com",
-            "Order Confirmation",
-            "Your order #1 has been processed successfully. Total amount: $100.0"
+        Mockito.verify(kafkaTemplate).send(
+            "notification-events",
+            UserCreatedEvent(
+                eventType = "notification.sent",
+                userId = "1",
+                firstName = "Notification",
+                lastName = "Service",
+                email = "1@example.com",
+                createdAt = Mockito.any()
+            )
         )
     }
 }

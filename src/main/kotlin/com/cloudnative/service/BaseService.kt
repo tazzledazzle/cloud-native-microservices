@@ -1,13 +1,12 @@
 package com.cloudnative.service
 
 import org.springframework.kafka.core.KafkaTemplate
-import java.time.LocalDateTime
 
-abstract class BaseService(
-    protected val kafkaTemplate: KafkaTemplate<String, Any>? = null
+abstract class BaseService<T : Any>(
+    protected open val kafkaTemplate: KafkaTemplate<String, T>? = null
 ) {
     
-    protected fun publishEvent(topic: String, event: Any, kafkaTemplate: KafkaTemplate<String, Any> = this.kafkaTemplate!!) {
-        kafkaTemplate.send(topic, event)
+    protected fun publishEvent(topic: String, event: T) {
+        kafkaTemplate?.send(topic, event)
     }
 }

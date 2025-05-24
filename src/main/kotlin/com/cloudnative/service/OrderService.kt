@@ -13,8 +13,8 @@ import java.time.LocalDateTime
 @Service
 class OrderService(
     private val orderRepository: OrderRepository,
-    private val kafkaTemplate: KafkaTemplate<String, OrderProcessedEvent>
-) : BaseService() {
+    override val kafkaTemplate: KafkaTemplate<String, OrderProcessedEvent>
+) : BaseService<OrderProcessedEvent>(kafkaTemplate) {
     
     @KafkaListener(topics = ["user-events"], groupId = "order-service")
     fun handleUserCreated(event: UserCreatedEvent) {
@@ -35,7 +35,7 @@ class OrderService(
             totalAmount = savedOrder.totalAmount,
             status = savedOrder.status.name,
             createdAt = savedOrder.createdAt
-        ), kafkaTemplate)
+        ))
     }
     
     fun getOrdersByUser(userId: Long): List<Order> {
