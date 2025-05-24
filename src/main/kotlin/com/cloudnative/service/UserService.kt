@@ -26,9 +26,9 @@ class UserNotFoundException(id: Long) : RuntimeException("User not found with id
 class UserService(
     private val userRepository: UserRepository,
     private val meterRegistry: MeterRegistry,
-    private val kafkaTemplate: KafkaTemplate<String, UserCreatedEvent>,
+    override val kafkaTemplate: KafkaTemplate<String, UserCreatedEvent>,
     @Value("\${user.events.topic}") private val userEventsTopic: String
-) {
+) : BaseService<UserCreatedEvent>(kafkaTemplate) {
     private val logger = LoggerFactory.getLogger(UserService::class.java)
 
     /**
@@ -44,8 +44,7 @@ class UserService(
         val event = UserCreatedEvent(
             eventType = "user.created",
             userId = savedUser.id.toString(),
-            firstName = savedUser.name,
-            lastName = "", // No last name in our User model
+            name = savedUser.name,
             email = savedUser.email,
             createdAt = savedUser.createdAt ?: JLocalDateTime.now().toKotlinLocalDateTime()
         )

@@ -5,7 +5,9 @@ import com.cloudnative.common.events.OrderProcessedEvent
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Service
 import org.springframework.kafka.core.KafkaTemplate
-import java.time.LocalDateTime
+import java.time.LocalDateTime as JLocalDateTime
+import kotlinx.datetime.toKotlinLocalDateTime
+
 
 @Service
 open class NotificationService(
@@ -43,7 +45,7 @@ open class NotificationService(
             firstName = "Notification",
             lastName = "Service",
             email = email,
-            createdAt = LocalDateTime.now()
+            createdAt = JLocalDateTime.now().toKotlinLocalDateTime()
         ))
     }
 }

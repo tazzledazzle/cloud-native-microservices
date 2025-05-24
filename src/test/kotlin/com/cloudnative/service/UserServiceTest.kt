@@ -10,10 +10,10 @@ import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.Mockito
 import org.mockito.junit.jupiter.MockitoExtension
-import java.time.LocalDateTime
+import kotlinx.datetime.LocalDateTime
 
 @ExtendWith(MockitoExtension::class)
-class UserServiceTest : BaseServiceTest() {
+class UserServiceTest : BaseServiceTest<BaseService<UserCreatedEvent>>() {
 
     @Mock
     lateinit var userRepository: UserRepository
@@ -25,15 +25,13 @@ class UserServiceTest : BaseServiceTest() {
     fun `should create user and publish event`() {
         val user = User(
             email = "test@example.com",
-            firstName = "Test",
-            lastName = "User"
+            name = "Test User"
         )
 
         val savedUser = User(
             id = 1L,
             email = "test@example.com",
-            firstName = "Test",
-            lastName = "User"
+            name = "Test User"
         )
 
         Mockito.`when`(userRepository.save(user)).thenReturn(savedUser)
@@ -46,10 +44,9 @@ class UserServiceTest : BaseServiceTest() {
             UserCreatedEvent(
                 eventType = "user.created",
                 userId = "1",
-                firstName = "Test",
-                lastName = "User",
+                name = "Test User",
                 email = "test@example.com",
-                createdAt = savedUser.createdAt
+                createdAt = savedUser.createdAt!!
             )
         )
 
@@ -60,9 +57,8 @@ class UserServiceTest : BaseServiceTest() {
     fun `should get user by id`() {
         val user = User(
             id = 1L,
-            email = "test@example.com",
-            firstName = "Test",
-            lastName = "User"
+            name = "Test User",
+            email = "test@example.com"
         )
 
         Mockito.`when`(userRepository.findById(1L)).thenReturn(java.util.Optional.of(user))
