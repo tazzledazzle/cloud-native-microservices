@@ -47,6 +47,7 @@ dependencies {
     
     // Test
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testRuntimeOnly("com.h2database:h2")
     testImplementation("org.testcontainers:postgresql")
     testImplementation("org.testcontainers:kafka")
     testImplementation("org.testcontainers:junit-jupiter")
@@ -74,7 +75,7 @@ springBoot {
 // Configure Spring Cloud version
 dependencyManagement {
     imports {
-        mavenBom("org.springframework.cloud:spring-cloud-dependencies:2022.0.4")
+        mavenBom("org.springframework.cloud:spring-cloud-dependencies:2023.0.4")
     }
 }
 

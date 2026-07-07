@@ -9,8 +9,7 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.kafka.core.KafkaTemplate
 import org.springframework.stereotype.Service
 import jakarta.validation.Valid
-import jakarta.validation.ConstraintViolationException
-import java.time.LocalDateTime as JLocalDateTime
+import java.time.LocalDateTime
 import kotlinx.datetime.toKotlinLocalDateTime
 import org.springframework.validation.annotation.Validated
 import org.springframework.transaction.annotation.Transactional
@@ -29,7 +28,7 @@ class UserService(
     private val logger = LoggerFactory.getLogger(UserService::class.java)
 
     fun createUser(@Valid user: User): User {
-        val now = JLocalDateTime.now().toKotlinLocalDateTime()
+        val now = LocalDateTime.now()
         val userWithTimestamp = user.copy(createdAt = now)
         val savedUser = userRepository.save(userWithTimestamp)
 
@@ -39,7 +38,7 @@ class UserService(
             firstName = savedUser.firstName,
             lastName = savedUser.lastName,
             email = savedUser.email,
-            createdAt = savedUser.createdAt ?: JLocalDateTime.now().toKotlinLocalDateTime()
+            createdAt = (savedUser.createdAt ?: now).toKotlinLocalDateTime()
         )
         publishEvent(userEventsTopic, savedUser.id.toString(), event)
 

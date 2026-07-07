@@ -1,11 +1,9 @@
 package com.cloudnative.model
 
 import jakarta.persistence.*
-import kotlinx.datetime.LocalDateTime
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Email
-import jakarta.persistence.GeneratedValue
-import jakarta.persistence.GenerationType
+import java.time.LocalDateTime
 
 
 @Entity
