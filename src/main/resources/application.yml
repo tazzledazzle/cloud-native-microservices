@@ -17,9 +17,17 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    consumer:
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.cloudnative.common.events"
 
 server:
   port: 8081
+
+user:
+  events:
+    topic: user-events
 
 management:
   endpoints:

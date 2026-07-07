@@ -1,16 +1,13 @@
 version: '3.8'
 
 services:
-  postgres:
-    image: postgres:15-alpine
+  # ── Infrastructure ────────────────────────────────────────────
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.1
     ports:
-      - "5432:5432"
+      - "2181:2181"
     environment:
-      POSTGRES_DB: user-service
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+      ZOOKEEPER_CLIENT_PORT: 2181
 
   kafka:
     image: confluentinc/cp-kafka:7.5.1
@@ -26,26 +23,61 @@ services:
     depends_on:
       - zookeeper
 
-  zookeeper:
-    image: confluentinc/cp-zookeeper:7.5.1
+  # ── Databases (one per service) ───────────────────────────────
+  user-service-db:
+    image: postgres:15-alpine
     ports:
-      - "2181:2181"
+      - "5432:5432"
     environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
+      POSTGRES_DB: user-service
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - user_db_data:/var/lib/postgresql/data
 
+  order-service-db:
+    image: postgres:15-alpine
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: order-service
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - order_db_data:/var/lib/postgresql/data
+
+  notification-service-db:
+    image: postgres:15-alpine
+    ports:
+      - "5434:5432"
+    environment:
+      POSTGRES_DB: notification-service
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - notification_db_data:/var/lib/postgresql/data
+
+  # ── Services ──────────────────────────────────────────────────
   user-service:
-    build: .
+    build:
+      context: .
+      dockerfile: services/user-service/Dockerfile
     ports:
       - "8081:8081"
     environment:
       SPRING_PROFILES_ACTIVE: local
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/user-service
+      SPRING_DATASOURCE_URL: jdbc:postgresql://user-service-db:5432/user-service
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres
       SPRING_KAFKA_BOOTSTRAP-SERVERS: kafka:29092
     depends_on:
-      - postgres
+      - user-service-db
       - kafka
 
+  # order-service and notification-service will be added here once each
+  # is extracted into its own Spring Boot module under services/{name}/.
+
 volumes:
-  postgres_data:
+  user_db_data:
+  order_db_data:
+  notification_db_data:

@@ -11,7 +11,8 @@ import jakarta.persistence.GenerationType
 @Entity
 data class User(
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY) val id: Long = 0,
-    @field:NotBlank val name: String,
+    @field:NotBlank val firstName: String,
+    @field:NotBlank val lastName: String,
     @field:Email val email: String,
     val createdAt: LocalDateTime? = null
 )
