@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "cloud_native_microservices",
+  "project_id": "36995333-414f-4734-a257-3432c6abac2d"
+}
