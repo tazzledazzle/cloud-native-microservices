@@ -37,7 +37,7 @@ services:
     environment:
       POSTGRES_DB: user-service
       POSTGRES_USER: ${DB_USERNAME:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}
     volumes:
       - user_db_data:/var/lib/postgresql/data
     healthcheck:
@@ -53,7 +53,7 @@ services:
     environment:
       POSTGRES_DB: order-service
       POSTGRES_USER: ${DB_USERNAME:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}
     volumes:
       - order_db_data:/var/lib/postgresql/data
     healthcheck:
@@ -69,7 +69,7 @@ services:
     environment:
       POSTGRES_DB: notification-service
       POSTGRES_USER: ${DB_USERNAME:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}
     volumes:
       - notification_db_data:/var/lib/postgresql/data
     healthcheck:
@@ -89,7 +89,7 @@ services:
       SPRING_PROFILES_ACTIVE: local
       SPRING_DATASOURCE_URL: jdbc:postgresql://user-service-db:5432/user-service
       SPRING_DATASOURCE_USERNAME: ${DB_USERNAME:-postgres}
-      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set in .env}
       SPRING_KAFKA_BOOTSTRAP-SERVERS: kafka:29092
     depends_on:
       user-service-db:
