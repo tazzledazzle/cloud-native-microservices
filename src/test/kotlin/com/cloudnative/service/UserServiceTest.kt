@@ -5,6 +5,7 @@ import com.cloudnative.model.User
 import com.cloudnative.repository.UserRepository
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -44,7 +45,7 @@ class UserServiceTest : BaseServiceTest<UserCreatedEvent>() {
         val result = userService.createUser(user)
 
         Mockito.verify(userRepository).save(any(User::class.java))
-        assert(result == savedUser)
+        assertEquals(savedUser, result)
     }
 
     @Test
@@ -56,6 +57,6 @@ class UserServiceTest : BaseServiceTest<UserCreatedEvent>() {
         val result = userService.getUser(1L)
 
         Mockito.verify(userRepository).findById(1L)
-        assert(result == user)
+        assertEquals(user, result)
     }
 }

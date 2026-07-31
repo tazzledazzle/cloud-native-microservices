@@ -6,6 +6,7 @@ import com.cloudnative.common.events.UserCreatedEvent
 import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.ArgumentCaptor
@@ -37,9 +38,9 @@ class NotificationServiceTest : BaseServiceTest<NotificationSentEvent>() {
         Mockito.verify(kafkaTemplate).send(Mockito.eq("notification-events"), captor.capture())
 
         val sent = captor.value
-        assert(sent.eventType == "notification.sent")
-        assert(sent.recipientEmail == "test@example.com")
-        assert(sent.subject == "Welcome to Our Platform!")
+        assertEquals("notification.sent", sent.eventType)
+        assertEquals("test@example.com", sent.recipientEmail)
+        assertEquals("Welcome to Our Platform!", sent.subject)
     }
 
     @Test
@@ -59,7 +60,7 @@ class NotificationServiceTest : BaseServiceTest<NotificationSentEvent>() {
         Mockito.verify(kafkaTemplate).send(Mockito.eq("notification-events"), captor.capture())
 
         val sent = captor.value
-        assert(sent.eventType == "notification.sent")
-        assert(sent.subject == "Order Confirmation")
+        assertEquals("notification.sent", sent.eventType)
+        assertEquals("Order Confirmation", sent.subject)
     }
 }

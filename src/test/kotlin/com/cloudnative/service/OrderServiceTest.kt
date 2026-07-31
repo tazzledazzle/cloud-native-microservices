@@ -8,6 +8,7 @@ import com.cloudnative.common.events.OrderProcessedEvent
 import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.ArgumentMatchers.any
@@ -70,6 +71,6 @@ class OrderServiceTest : BaseServiceTest<OrderProcessedEvent>() {
         val result = orderService.getOrdersByUser(1L)
 
         Mockito.verify(orderRepository).findByUserId(1L)
-        assert(result == listOf(order))
+        assertEquals(listOf(order), result)
     }
 }

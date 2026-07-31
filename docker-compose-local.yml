@@ -1,16 +1,53 @@
 version: '3.8'
 
 services:
-  postgres:
+  user-service-db:
     image: postgres:15-alpine
     ports:
       - "5432:5432"
     environment:
       POSTGRES_DB: user-service
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - user_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  order-service-db:
+    image: postgres:15-alpine
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: order-service
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - order_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  notification-service-db:
+    image: postgres:15-alpine
+    ports:
+      - "5434:5432"
+    environment:
+      POSTGRES_DB: notification-service
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - notification_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   kafka:
     image: confluentinc/cp-kafka:7.5.1
@@ -25,6 +62,12 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
     depends_on:
       - zookeeper
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.1
@@ -39,13 +82,15 @@ services:
       - "8081:8081"
     environment:
       SPRING_PROFILES_ACTIVE: local
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/user-service
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_DATASOURCE_URL: jdbc:postgresql://user-service-db:5432/user-service
+      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-postgres}
       SPRING_KAFKA_BOOTSTRAP-SERVERS: kafka:29092
     depends_on:
-      - postgres
-      - kafka
+      user-service-db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
 
   order-service:
     build: .
@@ -53,13 +98,15 @@ services:
       - "8082:8082"
     environment:
       SPRING_PROFILES_ACTIVE: local
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/order-service
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_DATASOURCE_URL: jdbc:postgresql://order-service-db:5432/order-service
+      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-postgres}
       SPRING_KAFKA_BOOTSTRAP-SERVERS: kafka:29092
     depends_on:
-      - postgres
-      - kafka
+      order-service-db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
 
   notification-service:
     build: .
@@ -69,7 +116,10 @@ services:
       SPRING_PROFILES_ACTIVE: local
       SPRING_KAFKA_BOOTSTRAP-SERVERS: kafka:29092
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
 
 volumes:
-  postgres_data:
+  user_db_data:
+  order_db_data:
+  notification_db_data:
