@@ -2,6 +2,7 @@ package com.cloudnative.controller
 
 import com.cloudnative.model.User
 import com.cloudnative.service.UserService
+import jakarta.validation.Valid
 import org.springframework.web.bind.annotation.*
 import java.util.*
 
@@ -12,7 +13,7 @@ class UserController(
 ) {
     
     @PostMapping
-    fun createUser(@RequestBody user: User): User {
+    fun createUser(@RequestBody @Valid user: User): User {
         return userService.createUser(user)
     }
     

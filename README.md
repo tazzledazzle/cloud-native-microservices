@@ -673,11 +673,86 @@ class UserOrderE2ETest {
 
 ⸻
 
-What Next?
+## Technical Work Study
 
-* Architecture Diagram: Use PlantUML code above for high-level architecture.
-* Terraform: Copy-paste skeleton; ask for any module in detail.
-* Spring Boot: Use code as template; let me know if you want the Order/Notification variants.
-* Kafka: Producer/Consumer code included.
-* Prometheus/Grafana: Configs and dashboards ready; expand as needed.
-* End-to-End Tests: Copy pattern above for each microservice pair.
+*Observations from cloud-architect, legacy-modernizer, and code-reviewer analysis — July 2026*
+
+---
+
+### Executive Summary
+
+This project demonstrates strong architectural intent. The design document names the right technologies — database-per-service, Kafka-driven event flows, Prometheus instrumentation, containerized deployments — and the implementation delivers on many of them. The Kafka producer/consumer pipeline works end-to-end. Each service owns a dedicated PostgreSQL database. Spring Boot Actuator exposes metrics at `/actuator/prometheus`. The `BaseService<T>` abstraction cleanly centralizes Kafka publish logic with structured error handling.
+
+The gap between aspiration and execution emerges at the operational layer. The project sits at a crossroads: it looks like a microservices system from the outside, but its build and runtime structure remain monolithic. Understanding that gap — and ranking its consequences — is the purpose of this study.
+
+---
+
+### Cloud Architecture: What Works and What Breaks at Scale
+
+The `docker-compose.yml` establishes the right topology. Three independent PostgreSQL instances (`user-service-db`, `order-service-db`, `notification-service-db`) enforce the database-per-service boundary that most microservices tutorials skip. Kafka runs behind ZooKeeper with separate advertised listeners for internal and external traffic — a real production concern handled correctly.
+
+The container strategy, however, has three problems that block a production deployment. First, every `Dockerfile` under `services/*/` uses a single-stage build that copies a pre-built JAR (`COPY build/libs/user-service.jar app.jar`). No multi-stage build separates the compile environment from the runtime image. The base image `eclipse-temurin:23-jdk-alpine` ships the full JDK — roughly 500 MB — when a JRE or distroless image would suffice at under 200 MB. Second, none of the service entries in `docker-compose.yml` define `healthcheck`, `readinessProbe`, or `livenessProbe` stanzas. Docker Compose will mark a container healthy the moment it starts, even if Spring Boot takes ten seconds to bind its port. Order-service and notification-service can attempt Kafka connections before the broker is ready, producing silent startup failures. Third, Kafka runs with `KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1`, which works on a single broker but causes consumer group metadata loss on broker restart. Production clusters require a replication factor of at least three.
+
+Beyond configuration, two dependencies in `build.gradle.kts` signal work that was planned but not implemented. `spring-cloud-starter-openfeign` enables declarative HTTP clients between services, and `io.github.resilience4j:resilience4j-spring-boot2` enables circuit breakers and retry logic. Neither appears in any service class. The `application.yml` explicitly disables Spring Cloud Config (`spring.cloud.config.enabled: false`). These are not bugs — they are stubs for the next phase of work — but they add compile-time weight and create misleading imports for a reader trying to understand the system.
+
+The observability foundation is genuine. Micrometer with the Prometheus registry is wired, and `UserService` publishes a `user.created.count` counter with `userId` and `emailDomain` labels. That is exactly the right level of business-meaningful telemetry.
+
+---
+
+### Legacy Modernization: Kotlin Idioms and Domain Integrity
+
+The codebase uses Kotlin 2.3 with a Gradle Kotlin DSL build file — both current choices. Constructor injection throughout the service layer follows Kotlin's idiomatic dependency injection style. The event-driven design avoids synchronous RPC between services entirely: `OrderService` and `NotificationService` consume Kafka topics and never call `UserService` over HTTP. That is the correct architecture.
+
+Three legacy patterns surface on close reading.
+
+The datetime story is inconsistent. `UserCreatedEvent` uses `kotlinx.datetime.LocalDateTime` from JetBrains' multiplatform datetime library. `OrderProcessedEvent` and `NotificationSentEvent` use `java.time.LocalDateTime`. These types are not interchangeable. The conversion in `UserService` — `(savedUser.createdAt ?: now).toKotlinLocalDateTime()` — adds an unnecessary transformation at every user creation. Pick one library and use it uniformly across all events.
+
+`NotificationService` declares `open class NotificationService` and `open fun sendNotification`. Kotlin makes classes `final` by default. The `kotlin.plugin.spring` plugin in `build.gradle.kts` should automatically open Spring-annotated classes, which means the manual `open` keywords are unnecessary — or the plugin is not working as expected. The redundant `open` modifier suggests the annotation processor was bypassed at some point and the fix was applied by hand rather than through the correct plugin configuration.
+
+`sendNotification` calls `println()` to report email delivery. `BaseService` already declares a SLF4J `logger`. The `println` output goes to stdout with no log level, no structured format, and no correlation with the Kafka message offset that triggered it. Replacing `println` with `logger.info()` costs one line and gains structured observability at no charge.
+
+The domain model exposes JPA entities directly through the REST layer. `UserController.createUser` accepts `@RequestBody user: User` where `User` is a `@Entity` class. This couples the HTTP API surface directly to the persistence schema: adding a database column changes the public API. A DTO layer — even a simple `CreateUserRequest` data class — would decouple these concerns.
+
+---
+
+### Code Review: Correctness, Security, and Test Coverage
+
+**Security.** Credentials appear in plaintext in two files. `application.yml` sets `password: postgres` at line 8. `docker-compose.yml` repeats `POSTGRES_PASSWORD: postgres` for all three database services. These values belong in environment variables sourced from a secrets manager, not in committed configuration files. The `management.endpoints.web.exposure.include: health,info,metrics` stanza exposes the metrics endpoint without authentication. In a public-facing deployment, Prometheus scraping should occur on a separate management port or behind network-level access controls.
+
+**Correctness.** `UserController.createUser` declares `@RequestBody user: User` without `@Valid`. The `User` entity annotates `firstName` with `@field:NotBlank` and `email` with `@field:Email`, but Spring's validation pipeline fires only when the controller parameter carries `@Valid`. Without it, a blank `firstName` or malformed email reaches `UserService`, passes to the repository, and inserts a bad record. Adding `@Valid` to the controller parameter activates the annotations already written.
+
+`Order.id` declares as `Long? = null` — a nullable Long. In `OrderService.handleUserCreated`, the code calls `savedOrder.id.toString()` after the save. If the JPA provider somehow returns a null ID (a contract violation, but one that Hibernate has produced under misconfiguration), this line throws a `NullPointerException` in a Kafka listener thread, halting message consumption for the entire consumer group. Declare `id` as `Long = 0` and let the `@GeneratedValue` strategy fill it on insert, matching the pattern in `User`.
+
+`OrderService.handleUserCreated` contains no exception handling. A malformed incoming `UserCreatedEvent`, a database timeout, or a Kafka publish failure will throw an uncaught exception. Spring Kafka's default error handler will log the exception and commit the offset, silently dropping the message. The correct pattern adds a `@KafkaListener` with a `DefaultErrorHandler` and a dead-letter topic, so failed messages land somewhere recoverable.
+
+**Test Coverage.** The build declares `testcontainers:postgresql` and `testcontainers:kafka` as dependencies, but no test uses them. All existing tests mock the repository and `KafkaTemplate` — correct for unit testing, but insufficient to verify the end-to-end flow. `UserServiceTest` and `OrderServiceTest` never verify that the Kafka payload was serialized correctly, that the consumer deserialized it, or that the database schema matches the entity. The `ApplicationContextTest` loads the full Spring context against H2, which catches wiring errors but not behavioral correctness. Testcontainers integration tests — one per service, each spinning real Postgres and Kafka — would close this gap.
+
+---
+
+### Additional Findings from Full Agent Review
+
+Two critical gaps surfaced in the cloud-architect scan that the initial pass missed.
+
+**The Prometheus scrape endpoint is disabled.** `application.yml` line 40 exposes `health,info,metrics` but not `prometheus`. Spring Boot Actuator will not serve `/actuator/prometheus`, making the entire Micrometer/Prometheus integration non-functional despite the registry dependency being present. One word fixes this: add `prometheus` to the include list.
+
+**`docker-compose-local.yml` breaks the database-per-service boundary.** The README directs developers to run `docker-compose -f docker-compose-local.yml up`, but that file provisions a single PostgreSQL instance for all services. Both `user-service` and `order-service` point at the same server with only different database names. The correct `docker-compose.yml` provisions three independent Postgres instances — one per service — but developers never run it. The file developers use every day silently violates the architecture the project is meant to demonstrate.
+
+A third gap from the legacy-modernizer scan: **`assert()` calls in tests are silent no-ops.** `UserServiceTest.kt` and `OrderServiceTest.kt` use Kotlin's stdlib `assert()` function, which the JVM disables by default unless the flag `-ea` is passed. Both test files contain assertions that never run, meaning failing conditions pass the test suite without error.
+
+### Priority Recommendations
+
+The following changes deliver the most value in order of impact:
+
+1. **Add `prometheus` to the Actuator exposure list** (`application.yml:40`) — enables the Prometheus scrape endpoint that the Micrometer dependency already wires.
+2. **Fix `docker-compose-local.yml`** — provision three separate PostgreSQL services matching `docker-compose.yml`, so the file developers actually run matches the architecture.
+3. **Add `@Valid` to `UserController.createUser`** — one word that activates all declared validation constraints.
+4. **Externalize credentials** — move database passwords to environment variables sourced from a `.env` file; remove plaintext values from committed configuration.
+5. **Add Docker health checks with conditions** — replace bare `depends_on` with `condition: service_healthy` in both compose files to eliminate startup-race connection failures.
+6. **Replace `assert()` with JUnit 5 `Assertions`** in `UserServiceTest.kt` and `OrderServiceTest.kt` — makes assertions run unconditionally.
+7. **Unify datetime libraries** — choose `java.time` or `kotlinx.datetime` across all event classes and remove the conversion layer.
+
+The structural gap — three services in one Gradle build — is the largest long-term investment. Extracting each service into an independent Gradle module with its own `springBoot { mainClass }` block, and extracting the `common/events` package into a shared library module, transforms the monorepo from a monolith organized as microservices into genuinely independent deployables. That work belongs in its own phase.
+
+---
+
+*Study prepared July 31, 2026. Source reviewed at commit `7f9877f` on branch `tschu/project-revamp`.*
