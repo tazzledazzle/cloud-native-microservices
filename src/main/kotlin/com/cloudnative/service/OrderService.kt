@@ -20,7 +20,8 @@ class OrderService(
     fun handleUserCreated(event: UserCreatedEvent) {
         // Create a sample order for the new user
         val order = Order(
-            userId = event.userId.toLong(),
+            userId = event.userId.toLongOrNull()
+                ?: throw IllegalArgumentException("Invalid userId '${event.userId}': must be numeric"),
             totalAmount = 100.0,
             status = OrderStatus.PENDING
         )

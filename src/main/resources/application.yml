@@ -9,6 +9,9 @@ spring:
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      connection-timeout: 5000
   jpa:
     hibernate:
       ddl-auto: update
@@ -41,7 +44,7 @@ management:
         include: health,info,metrics,prometheus
   endpoint:
     health:
-      show-details: always
+      show-details: never
 
 logging:
   level:

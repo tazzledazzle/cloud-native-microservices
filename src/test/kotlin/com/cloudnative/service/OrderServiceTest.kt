@@ -10,6 +10,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.ArgumentMatchers.any
 import org.mockito.InjectMocks
@@ -60,6 +61,46 @@ class OrderServiceTest : BaseServiceTest<OrderProcessedEvent>() {
                 createdAt = savedOrder.createdAt
             )
         )
+    }
+
+    @Test
+    fun `should throw controlled IllegalArgumentException (not raw NumberFormatException) for UUID userId`() {
+        val event = UserCreatedEvent(
+            eventType = "user.created",
+            userId = "550e8400-e29b-41d4-a716-446655440000",
+            firstName = "Test",
+            lastName = "User",
+            email = "test@example.com",
+            createdAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+        )
+
+        val ex = assertThrows<IllegalArgumentException> {
+            orderService.handleUserCreated(event)
+        }
+        assert(ex !is NumberFormatException) {
+            "Expected a controlled IllegalArgumentException with descriptive message, " +
+            "but got raw NumberFormatException: ${ex.message}. " +
+            "Use .toLongOrNull() ?: throw IllegalArgumentException(...) to produce a meaningful error."
+        }
+    }
+
+    @Test
+    fun `should throw controlled IllegalArgumentException for empty userId`() {
+        val event = UserCreatedEvent(
+            eventType = "user.created",
+            userId = "",
+            firstName = "Test",
+            lastName = "User",
+            email = "test@example.com",
+            createdAt = Clock.System.now().toLocalDateTime(TimeZone.UTC)
+        )
+
+        val ex = assertThrows<IllegalArgumentException> {
+            orderService.handleUserCreated(event)
+        }
+        assert(ex !is NumberFormatException) {
+            "Expected controlled IllegalArgumentException, but got raw NumberFormatException."
+        }
     }
 
     @Test
